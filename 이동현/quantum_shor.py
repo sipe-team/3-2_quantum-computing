@@ -15,20 +15,25 @@ def find_period(a: int, N: int) -> int:
     
     # 큐비트 생성: 계수 큐비트와 보조 큐비트
     # counting_qubits = [(0,0), (0,1), (0,2), ..., (0,10)] 11개 생성
+    # 이 계수 큐비트들은 주기를 찾는데 사용됨
     counting_qubits = [cirq.GridQubit(0, i) for i in range(precision_qubits)]
     # auxiliary_qubit = (1,0) 1개 생성
+    # 이 보조 큐비트는 제어 연산의 타겟으로 사용됨
     auxiliary_qubit = cirq.GridQubit(1, 0)
     
     # 양자 회로 생성
     circuit = cirq.Circuit()
     
-    # 계수 큐비트를 중첩(superposition) 상태로 초기화
+    # Hadamard 게이트 적용
+    # 모든 계수 큐비트를 균등한 중첩 상태로 변환
     circuit.append(cirq.H.on_each(counting_qubits))
     
     # 보조 큐비트를 |1⟩ 상태로 초기화
     circuit.append(cirq.X(auxiliary_qubit))
     
     # 제어된 U 연산 적용
+    # X gate를 power만큼 거듭제곱한 연산을 제어하여 적용
+    # 이는 a^x mod N의 계산을 양자 병렬로 수행하는 효과
     for i, counting_qubit in enumerate(counting_qubits):
         # U 연산의 지수를 계산 (a^(2^i) mod N)
         # 예시: a=7일 때의 각 power 값
@@ -48,17 +53,22 @@ def find_period(a: int, N: int) -> int:
         # 회로에 제어된 U 연산 추가
         circuit.append(controlled_U)
     
-    # 계수 큐비트에 역 양자 퓨리에 변환(QFT) 적용
+    # 역 양자 푸리에 변환(QFT) 적용
+    # 이를 통해 주기 r을 찾을 수 있는 상태로 변환
     circuit.append(cirq.qft(*counting_qubits, inverse=True))
     
-    # 계수 큐비트 측정
+    # counting 큐비트들을 측정
+    # 측정 결과는 'result' 키로 저장
+    # 측정을 통해 주기 r과 관련된 정보를 얻음
     circuit.append(cirq.measure(*counting_qubits, key='result'))
     
-    # 양자 회로 시뮬레이션
+    # 양자 회로 시뮬레이터 생성 및 실행
+    # 실제 양자 컴퓨터 대신 시뮬레이터로 회로를 실행
     simulator = cirq.Simulator()
     result = simulator.run(circuit, repetitions=1)
     
     # 측정 결과 처리
+    # 측정된 큐비트들의 상태를 비트열로 얻음
     # 예시 measurements = [0,1,0,0,1,1,0,0,0,1,0]
     measurements = result.measurements['result'][0]
     # 측정값을 이진수로부터 정수로 변환 (예: 314)
