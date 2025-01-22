@@ -1,6 +1,8 @@
 import cirq
 import random
 
+# BB84 알고리즘
+
 # 1. Alice의 비트 생성 및 베이스 선택
 def alice_prepare_qubits():
     qubits = [cirq.LineQubit(i) for i in range(4)]  # 큐비트 4개 생성
